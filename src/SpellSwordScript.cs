@@ -24,8 +24,11 @@ namespace SpellSword
         /// <summary>Launch speed (m/s) of the clone.</summary>
         public static float cloneSpeed = 40f;
 
-        /// <summary>How far past the tip / shield face (m) the clone spawns.</summary>
-        public static float spawnForwardOffset = 0.3f;
+        /// <summary>How far past the blade tip (m) a weapon clone spawns (clears the held weapon).</summary>
+        public static float spawnForwardOffset = 0.5f;
+
+        /// <summary>How far from a shield's center (m) the shield clone spawns (clears the shield/arm).</summary>
+        public static float shieldSpawnOffset = 0.6f;
 
         /// <summary>Maximum live clones before the oldest start despawning.</summary>
         public static int maxActiveClones = 30;
@@ -149,6 +152,10 @@ namespace SpellSword
             if (!clicked)
                 return;
 
+            // Don't fire while a menu/dialog is open (the click is for the UI).
+            if (PlayerControl.systemMenuActive)
+                return;
+
             RagdollHand hand = playerHand.ragdollHand;
             Item held = HeldItemOf(playerHand);
             if (held == null || !IsEligible(held))
@@ -191,26 +198,24 @@ namespace SpellSword
             if (data == null)
                 return;
 
-            // Launch direction: shields fire in the direction the hand is pointing;
-            // everything else fires out along the blade tip.
+            // Launch direction & spawn point: shields fire in the direction the hand is
+            // pointing (spawned clear of the shield/arm); everything else fires out the tip.
             Vector3 dir;
-            Vector3 originPos;
+            Vector3 spawnPos;
             if (IsShield(source))
             {
-                dir = hand != null
+                dir = (hand != null
                     ? hand.PointDir
-                    : (source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward);
-                originPos = source.transform.position;
+                    : (source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward)).normalized;
+                spawnPos = source.transform.position + dir * shieldSpawnOffset;
             }
             else
             {
                 Transform tip = source.flyDirRef != null ? source.flyDirRef : source.transform;
-                dir = tip.forward;
-                originPos = tip.position;
+                dir = tip.forward.normalized;
+                spawnPos = tip.position + dir * spawnForwardOffset;
             }
-            dir = dir.normalized;
 
-            Vector3 spawnPos = originPos + dir * spawnForwardOffset;
             Quaternion spawnRot = source.transform.rotation;
 
             // The imbue to carry: the held item's active blade imbue, else the hand's spell.
@@ -239,14 +244,20 @@ namespace SpellSword
                     {
                         rb.drag = 0f;                       // weight/drag independent travel
                         rb.angularDrag = 0.05f;
+                        // Fast projectiles bounce/tunnel with discrete detection. Speculative
+                        // continuous detection works against ALL colliders (including dynamic
+                        // ragdoll parts), so close-range hits register and penetrate.
+                        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
                         rb.velocity = dir * cloneSpeed;     // straight, fast
                         rb.angularVelocity = Vector3.zero;  // no spin
                     }
 
-                    if (imbueSpell != null)
-                        ApplyImbue(clone, imbueSpell);
+                    // The flight sound, and a controller that (re)applies the imbue over the
+                    // first moment (the clone's imbue points aren't ready this exact frame)
+                    // and stops the sound on first impact.
+                    EffectInstance flightSound = SpawnFlightSound(clone);
+                    clone.gameObject.AddComponent<CloneController>().Init(clone, imbueSpell, flightSound);
 
-                    PlayWhoosh(clone);
                     Register(clone);
                 }
                 catch (Exception e)
@@ -275,18 +286,6 @@ namespace SpellSword
             return null;
         }
 
-        private static void ApplyImbue(Item item, SpellCastCharge spell)
-        {
-            if (item.imbues == null)
-                return;
-            for (int i = 0; i < item.imbues.Count; i++)
-            {
-                Imbue imbue = item.imbues[i];
-                if (imbue != null)
-                    imbue.Transfer(spell, imbue.maxEnergy);
-            }
-        }
-
         private void Register(Item clone)
         {
             if (clone != null)
@@ -305,19 +304,17 @@ namespace SpellSword
             }
         }
 
-        private void PlayWhoosh(Item clone)
+        private EffectInstance SpawnFlightSound(Item clone)
         {
             EffectData whoosh = GetWhooshEffect();
             if (whoosh == null)
-                return;
+                return null;
             EffectInstance ws = whoosh.Spawn(clone.transform, false, null, true);
             if (ws == null)
-                return;
+                return null;
             ws.SetIntensity(thrownWhooshIntensity);
             ws.Play(0, false, false);
-
-            // Stop the flight sound as soon as the clone hits something.
-            clone.gameObject.AddComponent<CloneFlightSound>().Init(ws);
+            return ws;
         }
 
         private EffectData GetWhooshEffect()
@@ -346,27 +343,55 @@ namespace SpellSword
     }
 
     /// <summary>
-    /// Attached to a flying clone: stops its looping flight sound the first time the clone
-    /// collides with something solid.
+    /// Rides along on a flying clone. Applies the carried imbue over the first moment (the
+    /// clone's imbue points aren't ready the exact frame it spawns), and stops the looping
+    /// flight sound the first time the clone hits something solid.
     /// </summary>
-    public class CloneFlightSound : MonoBehaviour
+    public class CloneController : MonoBehaviour
     {
-        private EffectInstance effect;
-        private bool stopped;
+        private Item item;
+        private SpellCastCharge imbueSpell;
+        private EffectInstance flightSound;
+        private float imbueUntil;
+        private bool soundStopped;
 
-        public void Init(EffectInstance flightEffect)
+        public void Init(Item item, SpellCastCharge imbueSpell, EffectInstance flightSound)
         {
-            effect = flightEffect;
+            this.item = item;
+            this.imbueSpell = imbueSpell;
+            this.flightSound = flightSound;
+            this.imbueUntil = Time.time + 0.5f;
+            ApplyImbue();
+        }
+
+        private void Update()
+        {
+            if (imbueSpell != null && Time.time <= imbueUntil)
+                ApplyImbue();
+        }
+
+        private void ApplyImbue()
+        {
+            if (item == null || imbueSpell == null || item.imbues == null)
+                return;
+            for (int i = 0; i < item.imbues.Count; i++)
+            {
+                Imbue imbue = item.imbues[i];
+                if (imbue != null)
+                {
+                    try { imbue.Transfer(imbueSpell, imbue.maxEnergy); } catch { }
+                }
+            }
         }
 
         private void OnCollisionEnter(Collision collision)
         {
-            if (stopped)
+            if (soundStopped)
                 return;
-            stopped = true;
-            if (effect != null)
+            soundStopped = true;
+            if (flightSound != null)
             {
-                try { effect.End(false, 1f); } catch { }
+                try { flightSound.End(false, 1f); } catch { }
             }
         }
     }

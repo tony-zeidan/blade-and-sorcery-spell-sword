@@ -2,6 +2,19 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
+## [Unreleased]
+
+### Fixed
+- **Imbue now carries to the clone** — the imbue is re-applied over the clone's first ~0.5s
+  (its imbue points aren't ready the frame it spawns); falls back to the hand's selected spell.
+- **Close-range penetration** — clones use speculative continuous collision detection, so they
+  no longer bounce off / tunnel through targets at point-blank range.
+- **No firing while a menu/dialog is open** (`PlayerControl.systemMenuActive`).
+- **Clone spawns clear of the held item** (wider offset) so the weapon no longer gets nudged
+  in your hand on click.
+- **Shields** spawn further out along the hand's pointing direction so they clear the
+  shield/arm.
+
 ## [1.0.0] - 2026-06-29
 
 First public release.
