@@ -34,14 +34,14 @@ namespace SpellSword
         /// <summary>How far from a shield's center (m) the shield clone spawns (clears the shield/arm).</summary>
         public static float shieldSpawnOffset = 0.6f;
 
-        /// <summary>Degrees to pitch the shield's aim down (PointDir tilts upward). 0 = none.</summary>
-        public static float shieldAimPitchCorrection = 20f;
+        /// <summary>Degrees to pitch the shield's aim down (PointDir/wrist tilts upward). 0 = none.</summary>
+        public static float shieldAimPitchCorrection = 35f;
 
         /// <summary>Maximum live clones before the oldest start despawning.</summary>
         public static int maxActiveClones = 30;
 
         /// <summary>Seconds a thrown clone lives before despawning (skipped if you're holding it).</summary>
-        public static float projectileLifetime = 5f;
+        public static float projectileLifetime = 2f;
 
         /// <summary>
         /// Catalog id of the sound played while the clone flies. Other options:
