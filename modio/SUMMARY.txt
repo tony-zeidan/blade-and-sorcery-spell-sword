@@ -1,0 +1,1 @@
+Click the imbue button to fire a clone of your weapon or shield: weapons shoot point-first, shields fly face-first. The clone carries your current spell and penetrates like a real throw. Configurable in Mod Options.
