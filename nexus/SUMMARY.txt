@@ -1,0 +1,1 @@
+Click the imbue/spell button to fire a clone of your weapon or shield. Weapons shoot point-first out the blade tip; shields fly out face-first. The clone carries your current imbue (fire, lightning, gravity) and penetrates like a real throw. Works with any weapon, daggers, tools, or shields — configurable in Mod Options.
