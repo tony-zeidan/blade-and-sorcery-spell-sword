@@ -40,6 +40,9 @@ namespace SpellSword
         /// <summary>Maximum live clones before the oldest start despawning.</summary>
         public static int maxActiveClones = 30;
 
+        /// <summary>Seconds a thrown clone lives before despawning (skipped if you're holding it).</summary>
+        public static float projectileLifetime = 5f;
+
         /// <summary>
         /// Catalog id of the sound played while the clone flies. Other options:
         /// WhooshSpin, WhooshSwordShort, WhooshSwordLong, WhooshDagger, WhooshPropLight.
@@ -393,6 +396,7 @@ namespace SpellSword
         private SpellCastCharge imbueSpell;
         private EffectInstance flightSound;
         private float imbueUntil;
+        private float dieTime;
         private bool soundStopped;
 
         public void Init(Item item, SpellCastCharge imbueSpell, EffectInstance flightSound)
@@ -401,6 +405,7 @@ namespace SpellSword
             this.imbueSpell = imbueSpell;
             this.flightSound = flightSound;
             this.imbueUntil = Time.time + 0.5f;
+            this.dieTime = Time.time + SpellSwordScript.projectileLifetime;
             ApplyImbue();
         }
 
@@ -408,6 +413,13 @@ namespace SpellSword
         {
             if (imbueSpell != null && Time.time <= imbueUntil)
                 ApplyImbue();
+
+            // Despawn after its lifetime, unless the player has grabbed it.
+            if (Time.time >= dieTime && item != null && item.mainHandler == null)
+            {
+                try { item.Despawn(); } catch { }
+                item = null;
+            }
         }
 
         private void ApplyImbue()

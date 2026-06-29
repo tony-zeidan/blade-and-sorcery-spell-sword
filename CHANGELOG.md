@@ -5,6 +5,7 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 ## [Unreleased]
 
 ### Changed
+- Thrown clones **despawn after 5s** (`projectileLifetime`), unless you're holding one.
 - **Fires on a quick click, not a hold.** Firing now happens on button *release* if it was a
   short tap (< `clickMaxDuration`). Holding the button no longer fires, so you can still hold
   it to slide your grip along a weapon.
