@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ThunderRoad;
 using UnityEngine;
@@ -80,22 +81,56 @@ namespace SpellSword
         private EffectData whooshEffectData;
         private bool whooshResolved;
 
+        private const string LogPrefix = "[SpellSword] ";
+        private float lastErrorTime = -999f;
+
         public override void ScriptLoaded(ModManager.ModData modData)
         {
             base.ScriptLoaded(modData);
-            Debug.Log("[SpellSword] ThunderScript loaded. Click the imbue button on an item to fire a clone.");
+            Debug.Log(LogPrefix + "Loaded. Click the imbue button on an item to fire a clone.");
         }
 
         public override void ScriptUpdate()
         {
             base.ScriptUpdate();
 
-            Player player = Player.local;
-            if (player != null)
+            // Never let a per-frame failure spam the log or break the player's session.
+            try
             {
-                UpdateHand(player.handRight, right);
-                UpdateHand(player.handLeft, left);
+                Player player = Player.local;
+                if (player != null)
+                {
+                    UpdateHand(player.handRight, right);
+                    UpdateHand(player.handLeft, left);
+                }
             }
+            catch (Exception e)
+            {
+                LogException("ScriptUpdate", e);
+            }
+        }
+
+        public override void ScriptUnload()
+        {
+            // Clean up our clones when the mod unloads/reloads.
+            for (int i = 0; i < clones.Count; i++)
+            {
+                if (clones[i] != null)
+                {
+                    try { clones[i].Despawn(); } catch { }
+                }
+            }
+            clones.Clear();
+            base.ScriptUnload();
+        }
+
+        /// <summary>Log an exception at most once every few seconds (avoids per-frame spam).</summary>
+        private void LogException(string where, Exception e)
+        {
+            if (Time.time - lastErrorTime < 5f)
+                return;
+            lastErrorTime = Time.time;
+            Debug.LogError(LogPrefix + where + " error: " + e);
         }
 
         private void UpdateHand(PlayerHand playerHand, HandState state)
@@ -177,28 +212,41 @@ namespace SpellSword
 
             data.SpawnAsync(clone =>
             {
-                if (clone == null)
-                    return;
-
-                clone.IgnoreObjectCollision(source);
-
-                // Flag it as thrown so the game treats hits as penetrating thrown-weapon hits.
-                clone.Throw(1f, Item.FlyDetection.Forced);
-
-                Rigidbody rb = clone.GetComponent<Rigidbody>();
-                if (rb != null)
+                try
                 {
-                    rb.drag = 0f;                       // weight/drag independent travel
-                    rb.angularDrag = 0.05f;
-                    rb.velocity = dir * cloneSpeed;     // straight, fast
-                    rb.angularVelocity = Vector3.zero;  // no spin
+                    if (clone == null)
+                        return;
+
+                    if (source != null)
+                        clone.IgnoreObjectCollision(source);
+
+                    // Don't injure the caster with their own point-blank clone.
+                    Player player = Player.local;
+                    if (player != null && player.creature != null && player.creature.ragdoll != null)
+                        clone.IgnoreRagdollCollision(player.creature.ragdoll);
+
+                    // Flag it as thrown so the game treats hits as penetrating thrown-weapon hits.
+                    clone.Throw(1f, Item.FlyDetection.Forced);
+
+                    Rigidbody rb = clone.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        rb.drag = 0f;                       // weight/drag independent travel
+                        rb.angularDrag = 0.05f;
+                        rb.velocity = dir * cloneSpeed;     // straight, fast
+                        rb.angularVelocity = Vector3.zero;  // no spin
+                    }
+
+                    if (imbueSpell != null)
+                        ApplyImbue(clone, imbueSpell);
+
+                    PlayWhoosh(clone);
+                    Register(clone);
                 }
-
-                if (imbueSpell != null)
-                    ApplyImbue(clone, imbueSpell);
-
-                PlayWhoosh(clone);
-                Register(clone);
+                catch (Exception e)
+                {
+                    LogException("SpawnClone", e);
+                }
             }, spawnPos, spawnRot);
         }
 
@@ -285,14 +333,19 @@ namespace SpellSword
 
         private void Register(Item clone)
         {
-            clones.Add(clone);
+            if (clone != null)
+                clones.Add(clone);
             clones.RemoveAll(c => c == null);
-            while (clones.Count > maxActiveClones)
+
+            // Despawn the oldest clones over the cap, but keep any the player is holding.
+            int i = 0;
+            while (clones.Count > maxActiveClones && i < clones.Count)
             {
-                Item oldest = clones[0];
-                clones.RemoveAt(0);
-                if (oldest != null)
-                    oldest.Despawn();
+                Item c = clones[i];
+                if (c == null) { clones.RemoveAt(i); continue; }
+                if (c.mainHandler != null) { i++; continue; } // skip held clones
+                clones.RemoveAt(i);
+                try { c.Despawn(); } catch { }
             }
         }
 

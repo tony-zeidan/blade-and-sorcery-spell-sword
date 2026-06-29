@@ -2,7 +2,9 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
-## [Unreleased]
+## [1.0.0] - 2026-06-29
+
+First public release.
 
 ### Added
 - **Shield support** — shields fire a clone perpendicular to their face (the direction they
@@ -22,6 +24,12 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
 ### Removed
 - Lightning slash arc, blade spin, and forced fire imbue (earlier prototypes).
+
+### Hardened
+- Per-frame logic and the spawn callback are wrapped in try/catch with throttled logging, so
+  a failure can't spam the log or break the session.
+- Clones ignore the caster's own body; the FIFO cull keeps clones the player is holding;
+  clones are cleaned up on mod unload.
 
 ## Notes
 - This project intentionally uses only stock game assets (no Unity project / AssetBundle).

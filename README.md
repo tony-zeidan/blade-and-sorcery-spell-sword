@@ -12,11 +12,41 @@ equipped still throws an imbued clone; no spell → plain clone). Clones are fla
 they penetrate, and travel at a fixed speed regardless of weight. Up to **30** clones persist
 at once — beyond that, the oldest despawn first.
 
-By default the mod only responds to one sword (`targetSwordId`, the short sword
-`SwordShortCommon`); change the scope in the in-game menu. No custom assets / AssetBundle are
-needed — the clone is a duplicate of your own item.
+By default the mod only responds to one sword (the short sword); change the scope in the
+in-game menu. No custom assets / AssetBundle are needed — the clone is a duplicate of your own
+item.
 
 Built for **Blade & Sorcery PCVR, game version 1.0.0.0** (ThunderRoad framework).
+
+---
+
+## Install (players)
+
+1. Download `SpellSword_v1.0.0.zip` from the [Releases](https://github.com/tony-zeidan/blade-and-sorcery-spell-sword/releases) page.
+2. Extract it. You'll get a **`SpellSword`** folder containing `SpellSword.dll` and
+   `manifest.json`.
+3. Copy that **`SpellSword`** folder into your game's mods folder:
+   `…\steamapps\common\Blade & Sorcery\BladeAndSorcery_Data\StreamingAssets\Mods\`
+4. Start (or restart) the game.
+
+To uninstall, delete the `SpellSword` folder and restart.
+
+## Use
+
+1. Grab a weapon or shield.
+2. (Optional) Select or imbue a spell on that hand for an elemental clone.
+3. **Click the spell/imbue button** — a clone fires out, point-first (or face-first for
+   shields).
+
+Open **Options → Mods** in-game to toggle the mod and choose which items it works on (short
+sword only / all swords / daggers / weapons / weapons & tools / shields / any held item).
+
+## Compatibility
+
+- **Blade & Sorcery PCVR**, game version **1.0.0.0** (see `GameVersion` in `manifest.json`).
+  Not for Nomad (Quest).
+- Uses only stock game content, so it doesn't conflict with other mods' assets. It reads the
+  spell/imbue button, so it pairs naturally with the base spell system.
 
 ---
 
@@ -141,3 +171,12 @@ Change a value, re-run `./build.ps1`, restart the game.
    exact creature/collider it's pointing at.
 3. **Charge mechanic** — hold the button to scale clone speed/size by charge time.
 4. **Cost** — drain a bit of the held sword's imbue energy per clone so it's not free.
+
+---
+
+## Credits & license
+
+- Author: **Tony Abou-Zeidan**.
+- Built on **ThunderRoad** by WarpFrog (the Blade & Sorcery modding framework). Blade &
+  Sorcery is a trademark of its respective owners; this is an unofficial fan mod.
+- Licensed under the **MIT License** — see [LICENSE](LICENSE).
