@@ -10,6 +10,10 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
   it to slide your grip along a weapon.
 
 ### Fixed
+- **Close-range penetration** — the clone now spawns at the weapon's own position (like
+  throwing it) with only a tiny lead, instead of 0.5 m past the tip. The big offset was
+  materializing the clone on top of close targets, so they bounced; now it flies in clean.
+  Reverted speculative CCD (which bounces off "air") to continuous-dynamic.
 - **Shield aim** follows the hand's controller-forward instead of the upward-tilted `PointDir`.
 - Menu/dialog gate also captures UI-click state at press time (`PlayerControl.uiClickDown`).
 - **Imbue now carries to the clone** — the imbue is re-applied over the clone's first ~0.5s

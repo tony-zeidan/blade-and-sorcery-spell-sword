@@ -24,8 +24,12 @@ namespace SpellSword
         /// <summary>Launch speed (m/s) of the clone.</summary>
         public static float cloneSpeed = 40f;
 
-        /// <summary>How far past the blade tip (m) a weapon clone spawns (clears the held weapon).</summary>
-        public static float spawnForwardOffset = 0.5f;
+        /// <summary>
+        /// Small forward nudge (m) from the weapon's own position where the clone spawns.
+        /// Kept small so close-range targets aren't "spawned over" (which caused bounces);
+        /// the clone starts where your weapon is, like throwing it.
+        /// </summary>
+        public static float spawnForwardOffset = 0.1f;
 
         /// <summary>How far from a shield's center (m) the shield clone spawns (clears the shield/arm).</summary>
         public static float shieldSpawnOffset = 0.6f;
@@ -235,7 +239,9 @@ namespace SpellSword
             {
                 Transform tip = source.flyDirRef != null ? source.flyDirRef : source.transform;
                 dir = tip.forward.normalized;
-                spawnPos = tip.position + dir * spawnForwardOffset;
+                // Spawn at the weapon's own position (like throwing it), not out at the tip,
+                // so close-range targets aren't spawned over.
+                spawnPos = source.transform.position + dir * spawnForwardOffset;
             }
 
             Quaternion spawnRot = source.transform.rotation;
@@ -266,10 +272,9 @@ namespace SpellSword
                     {
                         rb.drag = 0f;                       // weight/drag independent travel
                         rb.angularDrag = 0.05f;
-                        // Fast projectiles bounce/tunnel with discrete detection. Speculative
-                        // continuous detection works against ALL colliders (including dynamic
-                        // ragdoll parts), so close-range hits register and penetrate.
-                        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+                        // Continuous (swept) detection so the fast clone doesn't tunnel, but
+                        // NOT speculative (speculative contacts make it bounce off "air").
+                        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
                         rb.velocity = dir * cloneSpeed;     // straight, fast
                         rb.angularVelocity = Vector3.zero;  // no spin
                     }
