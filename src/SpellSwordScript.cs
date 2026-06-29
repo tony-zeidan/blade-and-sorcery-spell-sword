@@ -42,6 +42,12 @@ namespace SpellSword
         /// <summary>Volume intensity (0..1) of the flight sound.</summary>
         public static float thrownWhooshIntensity = 1f;
 
+        /// <summary>
+        /// Max press length (s) that counts as a "click" (fires). Holding longer than this
+        /// does NOT fire, so you can still hold the button to slide your grip along a weapon.
+        /// </summary>
+        public static float clickMaxDuration = 0.3f;
+
         /// <summary>The item id used by the "Short sword only" scope.</summary>
         public static string targetSwordId = "SwordShortCommon";
 
@@ -144,16 +150,25 @@ namespace SpellSword
             if (playerHand == null || playerHand.ragdollHand == null || playerHand.controlHand == null)
                 return;
 
-            // Fresh click (rising edge) of the imbue/spell button.
             bool pressed = playerHand.controlHand.castPressed;
-            bool clicked = pressed && !state.castWasPressed;
+            bool pressBegan = pressed && !state.castWasPressed;
+            bool released = !pressed && state.castWasPressed;
             state.castWasPressed = pressed;
 
-            if (!clicked)
-                return;
+            if (pressBegan)
+            {
+                state.pressStartTime = Time.time;
+                // Remember if this press started on UI / in a menu, so it never fires.
+                state.pressBlockedByUI = PlayerControl.systemMenuActive || PlayerControl.uiClickDown;
+            }
 
-            // Don't fire while a menu/dialog is open (the click is for the UI).
-            if (PlayerControl.systemMenuActive)
+            // Only act on release: a quick CLICK fires; a longer HOLD is left alone so you
+            // can still slide your grip along the weapon while holding the button.
+            if (!released)
+                return;
+            if (Time.time - state.pressStartTime > clickMaxDuration)
+                return;
+            if (state.pressBlockedByUI || PlayerControl.systemMenuActive || PlayerControl.uiClickDown)
                 return;
 
             RagdollHand hand = playerHand.ragdollHand;
@@ -204,9 +219,16 @@ namespace SpellSword
             Vector3 spawnPos;
             if (IsShield(source))
             {
-                dir = (hand != null
-                    ? hand.PointDir
-                    : (source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward)).normalized;
+                // Fire where the hand is aimed. PlayerHand follows the controller directly and
+                // its forward tracks "fist pointing straight out" better than the anatomical
+                // PointDir (which tilts upward).
+                if (hand != null && hand.playerHand != null)
+                    dir = hand.playerHand.transform.forward;
+                else if (hand != null)
+                    dir = hand.PointDir;
+                else
+                    dir = source.transform.forward;
+                dir = dir.normalized;
                 spawnPos = source.transform.position + dir * shieldSpawnOffset;
             }
             else
@@ -339,6 +361,8 @@ namespace SpellSword
         private class HandState
         {
             public bool castWasPressed;
+            public float pressStartTime;
+            public bool pressBlockedByUI;
         }
     }
 

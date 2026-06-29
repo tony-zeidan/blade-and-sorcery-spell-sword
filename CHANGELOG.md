@@ -4,7 +4,14 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
 ## [Unreleased]
 
+### Changed
+- **Fires on a quick click, not a hold.** Firing now happens on button *release* if it was a
+  short tap (< `clickMaxDuration`). Holding the button no longer fires, so you can still hold
+  it to slide your grip along a weapon.
+
 ### Fixed
+- **Shield aim** follows the hand's controller-forward instead of the upward-tilted `PointDir`.
+- Menu/dialog gate also captures UI-click state at press time (`PlayerControl.uiClickDown`).
 - **Imbue now carries to the clone** — the imbue is re-applied over the clone's first ~0.5s
   (its imbue points aren't ready the frame it spawns); falls back to the hand's selected spell.
 - **Close-range penetration** — clones use speculative continuous collision detection, so they
