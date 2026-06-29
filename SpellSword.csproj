@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy (.NET Framework) project so Visual Studio 2019's bundled MSBuild can build it
+  with no separate .NET SDK install. Targets the highest .NET Framework targeting pack
+  you have installed (v4.7.1). This is the traditional way Blade & Sorcery code mods build.
+-->
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{6F1B3A77-2C4E-4E1A-9E3D-2A6B5C8D9E10}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SpellSword</RootNamespace>
+    <AssemblyName>SpellSword</AssemblyName>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <LangVersion>8.0</LangVersion>
+    <Deterministic>true</Deterministic>
+    <!-- Don't drag in app.config / framework assemblies we don't need. -->
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+
+    <!-- ====================================================================
+         Path to your Blade & Sorcery managed assemblies.
+         If you move the game, change this one line (and modsRoot in build.ps1).
+         '&' in the folder name must be written &amp; in XML.
+         ==================================================================== -->
+    <GameManaged>S:\game_installations\SteamLibrary\steamapps\common\Blade &amp; Sorcery\BladeAndSorcery_Data\Managed</GameManaged>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <!-- netstandard facade from the game, so net471 can consume the netstandard2.1 game DLLs. -->
+    <Reference Include="netstandard">
+      <HintPath>$(GameManaged)\netstandard.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ThunderRoad">
+      <HintPath>$(GameManaged)\ThunderRoad.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(GameManaged)\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GameManaged)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(GameManaged)\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="src\**\*.cs" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

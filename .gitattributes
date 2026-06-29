@@ -1,0 +1,14 @@
+# Normalize text line endings; keep Windows scripts CRLF.
+* text=auto
+
+*.cs        text diff=csharp
+*.csproj    text
+*.json      text
+*.md        text
+*.ps1       text eol=crlf
+
+# Treat compiled/binary artifacts as binary.
+*.dll       binary
+*.pdb       binary
+*.bundle    binary
+*.png       binary
