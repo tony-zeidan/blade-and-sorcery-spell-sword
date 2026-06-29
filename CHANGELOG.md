@@ -7,8 +7,8 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 First public release.
 
 ### Added
-- **Shield support** — shields fire a clone perpendicular to their face (the direction they
-  defend), computed from the shield's flattest collider axis. New **All shields** menu scope.
+- **Shield support** — shields fire a clone in the direction the hand is pointing
+  (`RagdollHand.PointDir`). New **All shields** menu scope.
 - **30-clone cap** — up to `maxActiveClones` (30) clones persist; the oldest despawn first.
 - In-game **Mod Options** menu: master toggle + **Active On** scope (short sword only / all
   swords / daggers / weapons / weapons & tools / shields / any held item).

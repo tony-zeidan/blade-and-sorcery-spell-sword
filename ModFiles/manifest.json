@@ -1,6 +1,6 @@
 {
   "Name": "Spell Sword",
-  "Description": "Click the imbue/spell button while holding a weapon or shield to fire a clone of it: weapons shoot out along the blade tip, shields fly out perpendicular to their face. The clone carries your current imbue (fire, lightning, gravity...) and is flagged thrown so it penetrates. Configurable in Mod Options.",
+  "Description": "Click the imbue/spell button while holding a weapon or shield to fire a clone of it: weapons shoot out along the blade tip, shields fly out in the direction your hand is pointing. The clone carries your current imbue (fire, lightning, gravity...) and is flagged thrown so it penetrates. Configurable in Mod Options.",
   "Author": "Tony Abou-Zeidan",
   "ModVersion": "1.0.0",
   "GameVersion": "1.0.0.0",

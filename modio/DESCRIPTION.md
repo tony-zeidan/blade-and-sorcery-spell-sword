@@ -7,7 +7,7 @@
 Hold a weapon or shield and **click the imbue/spell button** to launch a clone of it:
 
 - **Weapons** shoot out along the blade tip, toward whatever you're pointing at.
-- **Shields** fly out perpendicular to their face — the direction they defend.
+- **Shields** fly out in the direction your hand is pointing.
 
 The clone carries your **current imbue** (fire, lightning, gravity…). Imbue your blade, or just
 have a spell selected on that hand, and the clone flies out enchanted. No spell? It's a plain
@@ -18,7 +18,7 @@ clone.
 - **Imbue-aware** — inherits your blade's active imbue, or the spell selected on that hand.
 - **Penetrates** — clones are flagged as thrown, so they stab and stick like a real throw.
 - **Fast & weight-independent** — a battleaxe clone flies as fast as a dagger clone.
-- **Shield support** — shields launch face-first in their blocking direction.
+- **Shield support** — shields launch in the direction your hand points.
 - **Configurable** — an in-game options menu lets you pick which items it works on.
 - **Lightweight** — pure code mod using only the game's own assets. No AssetBundles.
 
@@ -26,7 +26,7 @@ clone.
 
 1. Grab a weapon or shield.
 2. *(Optional)* Select or imbue a spell on that hand for an elemental clone.
-3. **Click the spell/imbue button** — a clone fires out, point-first (or face-first for shields).
+3. **Click the spell/imbue button** — a clone fires out, point-first (shields fire where your hand points).
 
 ## Configuration
 

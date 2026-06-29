@@ -9,7 +9,7 @@ built on the **ThunderRoad** framework. Holding an eligible item and clicking th
 button fires a clone of that item:
 
 - swords/weapons fly out along the blade tip (`item.flyDirRef.forward`),
-- shields fly out perpendicular to their face,
+- shields fly out in the direction the hand is pointing (`RagdollHand.PointDir`),
 - the clone carries the held item's active imbue, or the hand's selected spell, if any.
 
 The whole mod is one `ThunderRoad.ThunderScript` in [`src/SpellSwordScript.cs`](src/SpellSwordScript.cs).

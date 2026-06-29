@@ -10,7 +10,7 @@ namespace SpellSword
     ///
     /// Click the imbue/spell button while holding an eligible item to fire a clone of it:
     ///   * Swords/weapons fly straight out the blade tip (item.flyDirRef.forward).
-    ///   * Shields fly out perpendicular to their face (the way they defend).
+    ///   * Shields fly out in the direction the hand is pointing.
     /// The clone carries the held item's current imbue, or the spell selected on that hand,
     /// if any. Clones travel fast and weight-independent, and are flagged thrown so they
     /// penetrate. Up to <see cref="maxActiveClones"/> clones persist; the oldest despawn first.
@@ -188,13 +188,15 @@ namespace SpellSword
             if (data == null)
                 return;
 
-            // Launch direction: shields fire perpendicular to their face; everything else
-            // fires out along the blade tip.
+            // Launch direction: shields fire in the direction the hand is pointing;
+            // everything else fires out along the blade tip.
             Vector3 dir;
             Vector3 originPos;
             if (IsShield(source))
             {
-                dir = ShieldFaceNormal(source, hand);
+                dir = hand != null
+                    ? hand.PointDir
+                    : (source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward);
                 originPos = source.transform.position;
             }
             else
@@ -203,6 +205,7 @@ namespace SpellSword
                 dir = tip.forward;
                 originPos = tip.position;
             }
+            dir = dir.normalized;
 
             Vector3 spawnPos = originPos + dir * spawnForwardOffset;
             Quaternion spawnRot = source.transform.rotation;
@@ -248,56 +251,6 @@ namespace SpellSword
                     LogException("SpawnClone", e);
                 }
             }, spawnPos, spawnRot);
-        }
-
-        /// <summary>
-        /// The perpendicular-to-face direction of a shield (the way it defends).
-        /// Found as the thinnest axis of the shield's solid colliders, pointing away from
-        /// the holding hand.
-        /// </summary>
-        private static Vector3 ShieldFaceNormal(Item item, RagdollHand hand)
-        {
-            Transform t = item.transform;
-            Collider[] cols = item.GetComponentsInChildren<Collider>();
-
-            Vector3 min = Vector3.positiveInfinity;
-            Vector3 max = Vector3.negativeInfinity;
-            bool any = false;
-            for (int i = 0; i < cols.Length; i++)
-            {
-                if (cols[i].isTrigger)
-                    continue;
-                any = true;
-                Bounds wb = cols[i].bounds;
-                for (int xi = -1; xi <= 1; xi += 2)
-                    for (int yi = -1; yi <= 1; yi += 2)
-                        for (int zi = -1; zi <= 1; zi += 2)
-                        {
-                            Vector3 corner = wb.center + Vector3.Scale(wb.extents, new Vector3(xi, yi, zi));
-                            Vector3 local = t.InverseTransformPoint(corner);
-                            min = Vector3.Min(min, local);
-                            max = Vector3.Max(max, local);
-                        }
-            }
-
-            if (!any)
-                return t.forward;
-
-            Vector3 size = max - min;
-            Vector3 localNormal;
-            if (size.x <= size.y && size.x <= size.z) localNormal = Vector3.right;
-            else if (size.y <= size.x && size.y <= size.z) localNormal = Vector3.up;
-            else localNormal = Vector3.forward;
-
-            Vector3 worldNormal = t.TransformDirection(localNormal).normalized;
-
-            // Point away from the hand (i.e. toward the front of the shield).
-            Vector3 faceCenter = t.TransformPoint((min + max) * 0.5f);
-            Vector3 handPos = hand != null ? hand.transform.position : t.position;
-            if (Vector3.Dot(worldNormal, faceCenter - handPos) < 0f)
-                worldNormal = -worldNormal;
-
-            return worldNormal;
         }
 
         /// <summary>Held item's active blade imbue, else the hand's selected spell, else null.</summary>

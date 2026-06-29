@@ -4,7 +4,7 @@
 item, fast and straight (no spin):
 
 - **Swords / weapons** fly out along the **blade tip** (toward whatever the tip points at).
-- **Shields** fly out **perpendicular to their face** (the direction they defend).
+- **Shields** fly out **in the direction your hand is pointing**.
 
 The clone carries an imbue if available: the held item's **active blade imbue**, or failing
 that the **spell currently selected on that hand** (so a non-glowing sword with a spell
@@ -35,8 +35,8 @@ To uninstall, delete the `SpellSword` folder and restart.
 
 1. Grab a weapon or shield.
 2. (Optional) Select or imbue a spell on that hand for an elemental clone.
-3. **Click the spell/imbue button** — a clone fires out, point-first (or face-first for
-   shields).
+3. **Click the spell/imbue button** — a clone fires out, point-first (shields fire where your
+   hand points).
 
 Open **Options → Mods** in-game to toggle the mod and choose which items it works on (short
 sword only / all swords / daggers / weapons / weapons & tools / shields / any held item).
@@ -62,8 +62,8 @@ Every frame it:
    `playerHand.controlHand.castPressed`).
 2. On a click, finds the gripped item (`ragdollHand.grabbedHandle.item`) and checks it's
    eligible (per the menu scope).
-3. Picks a launch direction: `item.flyDirRef.forward` (tip) for weapons, or the shield's
-   thinnest-collider-axis normal for shields. Picks an imbue: `item.imbues[…].spellCastBase`
+3. Picks a launch direction: `item.flyDirRef.forward` (tip) for weapons, or `hand.PointDir`
+   (the hand's pointing direction) for shields. Picks an imbue: `item.imbues[…].spellCastBase`
    if the blade is imbued, else `hand.caster.spellInstance` (the hand's selected spell).
 4. Spawns a clone (`item.data.SpawnAsync`), flags it thrown (`item.Throw`), zeroes its drag,
    sets a straight velocity (zero angular velocity), copies the imbue (`imbue.Transfer`), and
