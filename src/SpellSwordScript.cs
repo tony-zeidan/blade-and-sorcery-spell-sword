@@ -30,10 +30,13 @@ namespace SpellSword
         /// <summary>Maximum live clones before the oldest start despawning.</summary>
         public static int maxActiveClones = 30;
 
-        /// <summary>Catalog id of the whoosh sound played on the clone.</summary>
-        public static string whooshEffectId = "WhooshSwordShort";
+        /// <summary>
+        /// Catalog id of the sound played while the clone flies. Other options:
+        /// WhooshSpin, WhooshSwordShort, WhooshSwordLong, WhooshDagger, WhooshPropLight.
+        /// </summary>
+        public static string whooshEffectId = "WhooshSpin";
 
-        /// <summary>Volume intensity (0..1) of the clone whoosh.</summary>
+        /// <summary>Volume intensity (0..1) of the flight sound.</summary>
         public static float thrownWhooshIntensity = 1f;
 
         /// <summary>The item id used by the "Short sword only" scope.</summary>
@@ -308,11 +311,13 @@ namespace SpellSword
             if (whoosh == null)
                 return;
             EffectInstance ws = whoosh.Spawn(clone.transform, false, null, true);
-            if (ws != null)
-            {
-                ws.SetIntensity(thrownWhooshIntensity);
-                ws.Play(0, false, false);
-            }
+            if (ws == null)
+                return;
+            ws.SetIntensity(thrownWhooshIntensity);
+            ws.Play(0, false, false);
+
+            // Stop the flight sound as soon as the clone hits something.
+            clone.gameObject.AddComponent<CloneFlightSound>().Init(ws);
         }
 
         private EffectData GetWhooshEffect()
@@ -337,6 +342,32 @@ namespace SpellSword
         private class HandState
         {
             public bool castWasPressed;
+        }
+    }
+
+    /// <summary>
+    /// Attached to a flying clone: stops its looping flight sound the first time the clone
+    /// collides with something solid.
+    /// </summary>
+    public class CloneFlightSound : MonoBehaviour
+    {
+        private EffectInstance effect;
+        private bool stopped;
+
+        public void Init(EffectInstance flightEffect)
+        {
+            effect = flightEffect;
+        }
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            if (stopped)
+                return;
+            stopped = true;
+            if (effect != null)
+            {
+                try { effect.End(false, 1f); } catch { }
+            }
         }
     }
 }

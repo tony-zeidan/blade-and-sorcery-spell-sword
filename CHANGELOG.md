@@ -12,7 +12,8 @@ First public release.
 - **30-clone cap** — up to `maxActiveClones` (30) clones persist; the oldest despawn first.
 - In-game **Mod Options** menu: master toggle + **Active On** scope (short sword only / all
   swords / daggers / weapons / weapons & tools / shields / any held item).
-- Whoosh sound on the fired clone (`WhooshSwordShort`).
+- Flight sound on the fired clone (`WhooshSpin` by default, configurable) that stops on first
+  impact via a small `CloneFlightSound` component.
 
 ### Changed
 - Reworked to a **single behavior**: click the imbue button to fire a clone straight out the

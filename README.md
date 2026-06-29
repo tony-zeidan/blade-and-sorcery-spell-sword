@@ -67,7 +67,7 @@ Every frame it:
    if the blade is imbued, else `hand.caster.spellInstance` (the hand's selected spell).
 4. Spawns a clone (`item.data.SpawnAsync`), flags it thrown (`item.Throw`), zeroes its drag,
    sets a straight velocity (zero angular velocity), copies the imbue (`imbue.Transfer`), and
-   plays a whoosh.
+   plays a flight sound that a small `CloneFlightSound` component stops on first impact.
 5. Tracks live clones and despawns the oldest once more than `maxActiveClones` (30) exist.
 
 ---
@@ -137,7 +137,8 @@ The rest of the feel knobs are `public static` fields at the top of `SpellSwordS
 | `cloneSpeed`             | Launch speed of the clone (m/s)                          | 40      |
 | `spawnForwardOffset`     | How far past the tip / shield face the clone spawns (m)  | 0.3     |
 | `maxActiveClones`        | Live clones before the oldest despawn (FIFO)             | 30      |
-| `thrownWhooshIntensity`  | Volume (0..1) of the clone whoosh sound                  | 1.0     |
+| `whooshEffectId`         | Flight sound effect id (WhooshSpin, WhooshSwordLong, …)  | WhooshSpin |
+| `thrownWhooshIntensity`  | Volume (0..1) of the flight sound                        | 1.0     |
 
 The in-game **Active On** menu now also has an **All shields** option.
 
