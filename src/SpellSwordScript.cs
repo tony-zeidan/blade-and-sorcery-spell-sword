@@ -162,8 +162,10 @@ namespace SpellSword
             if (pressBegan)
             {
                 state.pressStartTime = Time.time;
-                // Remember if this press started on UI / in a menu, so it never fires.
-                state.pressBlockedByUI = PlayerControl.systemMenuActive || PlayerControl.uiClickDown;
+                // Remember if this press started while a menu was open, so it never fires.
+                // (Don't use uiClickDown: the right hand is the UI-pointer hand and sets it
+                // during normal gameplay, which would block right-hand firing entirely.)
+                state.pressBlockedByUI = PlayerControl.systemMenuActive;
             }
 
             // Only act on release: a quick CLICK fires; a longer HOLD is left alone so you
@@ -172,7 +174,7 @@ namespace SpellSword
                 return;
             if (Time.time - state.pressStartTime > clickMaxDuration)
                 return;
-            if (state.pressBlockedByUI || PlayerControl.systemMenuActive || PlayerControl.uiClickDown)
+            if (state.pressBlockedByUI || PlayerControl.systemMenuActive)
                 return;
 
             RagdollHand hand = playerHand.ragdollHand;
@@ -264,9 +266,6 @@ namespace SpellSword
                     if (player != null && player.creature != null && player.creature.ragdoll != null)
                         clone.IgnoreRagdollCollision(player.creature.ragdoll);
 
-                    // Flag it as thrown so the game treats hits as penetrating thrown-weapon hits.
-                    clone.Throw(1f, Item.FlyDetection.Forced);
-
                     Rigidbody rb = clone.GetComponent<Rigidbody>();
                     if (rb != null)
                     {
@@ -278,6 +277,11 @@ namespace SpellSword
                         rb.velocity = dir * cloneSpeed;     // straight, fast
                         rb.angularVelocity = Vector3.zero;  // no spin
                     }
+
+                    // Flag it as thrown AFTER setting velocity, so the throw arms its
+                    // fly/penetration state with the real velocity (otherwise penetration only
+                    // kicks in after the clone has travelled a while = needs distance).
+                    clone.Throw(1f, Item.FlyDetection.Forced);
 
                     // The flight sound, and a controller that (re)applies the imbue over the
                     // first moment (the clone's imbue points aren't ready this exact frame)

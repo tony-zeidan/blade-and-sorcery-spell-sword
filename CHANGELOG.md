@@ -10,10 +10,13 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
   it to slide your grip along a weapon.
 
 ### Fixed
-- **Close-range penetration** — the clone now spawns at the weapon's own position (like
-  throwing it) with only a tiny lead, instead of 0.5 m past the tip. The big offset was
-  materializing the clone on top of close targets, so they bounced; now it flies in clean.
-  Reverted speculative CCD (which bounces off "air") to continuous-dynamic.
+- **Right hand can fire again** — removed `uiClickDown` from the menu gate; the right hand is
+  the UI-pointer hand and sets that flag in normal play, which was blocking it.
+- **Close-range penetration** — set velocity *before* `Throw()` so the throw arms its
+  fly/penetration state with the real velocity immediately (it was arming with ~zero velocity
+  and only engaging after the clone had travelled some distance). Also spawn the clone at the
+  weapon's own position with a small lead (not 0.5 m past the tip), and use continuous-dynamic
+  (not speculative) CCD.
 - **Shield aim** follows the hand's controller-forward instead of the upward-tilted `PointDir`.
 - Menu/dialog gate also captures UI-click state at press time (`PlayerControl.uiClickDown`).
 - **Imbue now carries to the clone** — the imbue is re-applied over the clone's first ~0.5s
