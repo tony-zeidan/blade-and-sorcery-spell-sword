@@ -2,33 +2,24 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
-## [Unreleased]
+## [1.1.0] - 2026-06-29
 
 ### Changed
-- Thrown clones **despawn after 5s** (`projectileLifetime`), unless you're holding one.
-- **Fires on a quick click, not a hold.** Firing now happens on button *release* if it was a
-  short tap (< `clickMaxDuration`). Holding the button no longer fires, so you can still hold
-  it to slide your grip along a weapon.
+- **Fires on a quick click, not a hold** — firing happens on button release within
+  `clickMaxDuration`. Holding the button no longer fires, so you can still hold it to slide
+  your grip along a weapon.
+- Thrown clones now despawn after **2s** (`projectileLifetime`), unless you're holding one.
 
 ### Fixed
-- **Right hand can fire again** — removed `uiClickDown` from the menu gate; the right hand is
-  the UI-pointer hand and sets that flag in normal play, which was blocking it.
-- **Close-range penetration** — set velocity *before* `Throw()` so the throw arms its
-  fly/penetration state with the real velocity immediately (it was arming with ~zero velocity
-  and only engaging after the clone had travelled some distance). Also spawn the clone at the
-  weapon's own position with a small lead (not 0.5 m past the tip), and use continuous-dynamic
-  (not speculative) CCD.
-- **Shield aim** follows the hand's controller-forward instead of the upward-tilted `PointDir`.
-- Menu/dialog gate also captures UI-click state at press time (`PlayerControl.uiClickDown`).
-- **Imbue now carries to the clone** — the imbue is re-applied over the clone's first ~0.5s
-  (its imbue points aren't ready the frame it spawns); falls back to the hand's selected spell.
-- **Close-range penetration** — clones use speculative continuous collision detection, so they
-  no longer bounce off / tunnel through targets at point-blank range.
+- **Imbue carries to the clone reliably** — re-applied over the clone's first moment (its imbue
+  points aren't ready the frame it spawns); falls back to the spell selected on that hand.
+- **Close-range penetration** — the clone arms its thrown/penetration state at spawn (velocity
+  is set before `Throw()`) and spawns at the weapon's own position, so point-blank shots stab
+  instead of bouncing off.
+- **Right hand fires again** — the menu gate no longer trips on the UI-pointer (right) hand.
+- **Shield aim** uses the hand's pointing direction with a downward pitch correction
+  (`shieldAimPitchCorrection`) so it tracks where your fist points.
 - **No firing while a menu/dialog is open** (`PlayerControl.systemMenuActive`).
-- **Clone spawns clear of the held item** (wider offset) so the weapon no longer gets nudged
-  in your hand on click.
-- **Shields** spawn further out along the hand's pointing direction so they clear the
-  shield/arm.
 
 ## [1.0.0] - 2026-06-29
 

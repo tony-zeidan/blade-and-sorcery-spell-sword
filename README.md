@@ -22,7 +22,7 @@ Built for **Blade & Sorcery PCVR, game version 1.0.0.0** (ThunderRoad framework)
 
 ## Install (players)
 
-1. Download `SpellSword_v1.0.0.zip` from the [Releases](https://github.com/tony-zeidan/blade-and-sorcery-spell-sword/releases) page.
+1. Download the latest `SpellSword_v*.zip` from the [Releases](https://github.com/tony-zeidan/blade-and-sorcery-spell-sword/releases) page.
 2. Extract it. You'll get a **`SpellSword`** folder containing `SpellSword.dll` and
    `manifest.json`.
 3. Copy that **`SpellSword`** folder into your game's mods folder:
