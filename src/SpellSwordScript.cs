@@ -34,6 +34,9 @@ namespace SpellSword
         /// <summary>How far from a shield's center (m) the shield clone spawns (clears the shield/arm).</summary>
         public static float shieldSpawnOffset = 0.6f;
 
+        /// <summary>Degrees to pitch the shield's aim down (PointDir tilts upward). 0 = none.</summary>
+        public static float shieldAimPitchCorrection = 20f;
+
         /// <summary>Maximum live clones before the oldest start despawning.</summary>
         public static int maxActiveClones = 30;
 
@@ -225,16 +228,20 @@ namespace SpellSword
             Vector3 spawnPos;
             if (IsShield(source))
             {
-                // Fire where the hand is aimed. PlayerHand follows the controller directly and
-                // its forward tracks "fist pointing straight out" better than the anatomical
-                // PointDir (which tilts upward).
-                if (hand != null && hand.playerHand != null)
-                    dir = hand.playerHand.transform.forward;
-                else if (hand != null)
-                    dir = hand.PointDir;
+                // Fire where the hand points. PointDir is the right heading but tilts upward,
+                // so pitch it down a touch so the shield goes where the fist actually points.
+                if (hand != null)
+                {
+                    Vector3 aim = hand.PointDir;
+                    Vector3 horizRight = Vector3.Cross(Vector3.up, aim);
+                    if (horizRight.sqrMagnitude > 0.0001f)
+                        aim = Quaternion.AngleAxis(shieldAimPitchCorrection, horizRight.normalized) * aim;
+                    dir = aim.normalized;
+                }
                 else
-                    dir = source.transform.forward;
-                dir = dir.normalized;
+                {
+                    dir = source.transform.forward.normalized;
+                }
                 spawnPos = source.transform.position + dir * shieldSpawnOffset;
             }
             else
