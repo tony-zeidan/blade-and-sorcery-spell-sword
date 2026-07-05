@@ -13,7 +13,7 @@ namespace SpellSword
     ///   * Shields fly out in the direction the hand is pointing.
     /// The clone carries the held item's current imbue, or the spell selected on that hand,
     /// if any. Clones travel fast and weight-independent, and are flagged thrown so they
-    /// penetrate. Up to <see cref="maxActiveClones"/> clones persist; the oldest despawn first.
+    /// penetrate. Each clone despawns after <see cref="projectileLifetime"/> seconds.
     /// </summary>
     public class SpellSwordScript : ThunderScript
     {
@@ -36,9 +36,6 @@ namespace SpellSword
 
         /// <summary>Degrees to pitch the shield's aim down (PointDir/wrist tilts upward). 0 = none.</summary>
         public static float shieldAimPitchCorrection = 35f;
-
-        /// <summary>Maximum live clones before the oldest start despawning.</summary>
-        public static int maxActiveClones = 30;
 
         /// <summary>Seconds a thrown clone lives before despawning (skipped if you're holding it).</summary>
         public static float projectileLifetime = 2f;
@@ -97,9 +94,6 @@ namespace SpellSword
         private readonly HandState left = new HandState();
         private readonly HandState right = new HandState();
 
-        // Live clones, oldest first. Capped at maxActiveClones.
-        private readonly List<Item> clones = new List<Item>();
-
         private EffectData whooshEffectData;
         private bool whooshResolved;
 
@@ -130,20 +124,6 @@ namespace SpellSword
             {
                 LogException("ScriptUpdate", e);
             }
-        }
-
-        public override void ScriptUnload()
-        {
-            // Clean up our clones when the mod unloads/reloads.
-            for (int i = 0; i < clones.Count; i++)
-            {
-                if (clones[i] != null)
-                {
-                    try { clones[i].Despawn(); } catch { }
-                }
-            }
-            clones.Clear();
-            base.ScriptUnload();
         }
 
         /// <summary>Log an exception at most once every few seconds (avoids per-frame spam).</summary>
@@ -298,8 +278,6 @@ namespace SpellSword
                     // and stops the sound on first impact.
                     EffectInstance flightSound = SpawnFlightSound(clone);
                     clone.gameObject.AddComponent<CloneController>().Init(clone, imbueSpell, flightSound);
-
-                    Register(clone);
                 }
                 catch (Exception e)
                 {
@@ -325,24 +303,6 @@ namespace SpellSword
                 return selected;
 
             return null;
-        }
-
-        private void Register(Item clone)
-        {
-            if (clone != null)
-                clones.Add(clone);
-            clones.RemoveAll(c => c == null);
-
-            // Despawn the oldest clones over the cap, but keep any the player is holding.
-            int i = 0;
-            while (clones.Count > maxActiveClones && i < clones.Count)
-            {
-                Item c = clones[i];
-                if (c == null) { clones.RemoveAt(i); continue; }
-                if (c.mainHandler != null) { i++; continue; } // skip held clones
-                clones.RemoveAt(i);
-                try { c.Despawn(); } catch { }
-            }
         }
 
         private EffectInstance SpawnFlightSound(Item clone)
@@ -387,8 +347,12 @@ namespace SpellSword
 
     /// <summary>
     /// Rides along on a flying clone. Applies the carried imbue over the first moment (the
-    /// clone's imbue points aren't ready the exact frame it spawns), and stops the looping
-    /// flight sound the first time the clone hits something solid.
+    /// clone's imbue points aren't ready the exact frame it spawns), stops the flight sound on
+    /// first impact, and despawns the clone after its lifetime.
+    ///
+    /// IMPORTANT: ThunderRoad pools items — when the clone despawns, its GameObject can be
+    /// reused for a real item later. This component tears itself down on the item's cull event
+    /// so it can never linger on a pooled object and, e.g., despawn a recycled arrow.
     /// </summary>
     public class CloneController : MonoBehaviour
     {
@@ -398,6 +362,7 @@ namespace SpellSword
         private float imbueUntil;
         private float dieTime;
         private bool soundStopped;
+        private bool tornDown;
 
         public void Init(Item item, SpellCastCharge imbueSpell, EffectInstance flightSound)
         {
@@ -406,20 +371,44 @@ namespace SpellSword
             this.flightSound = flightSound;
             this.imbueUntil = Time.time + 0.5f;
             this.dieTime = Time.time + SpellSwordScript.projectileLifetime;
+            if (item != null)
+                item.OnCullEvent += OnCull;
             ApplyImbue();
         }
 
         private void Update()
         {
+            if (tornDown || item == null)
+                return;
+
             if (imbueSpell != null && Time.time <= imbueUntil)
                 ApplyImbue();
 
-            // Despawn after its lifetime, unless the player has grabbed it.
-            if (Time.time >= dieTime && item != null && item.mainHandler == null)
+            // Despawn after its lifetime, unless the player has grabbed it. Despawning culls
+            // the item, which fires OnCull -> Teardown below.
+            if (Time.time >= dieTime && item.mainHandler == null)
             {
                 try { item.Despawn(); } catch { }
-                item = null;
             }
+        }
+
+        // Fires whenever the item is culled to the pool (our despawn, the game's cull, etc.).
+        private void OnCull(bool culled)
+        {
+            if (culled)
+                Teardown();
+        }
+
+        private void Teardown()
+        {
+            if (tornDown)
+                return;
+            tornDown = true;
+            StopSound();
+            if (item != null)
+                item.OnCullEvent -= OnCull;
+            item = null;
+            Destroy(this);
         }
 
         private void ApplyImbue()
@@ -436,7 +425,7 @@ namespace SpellSword
             }
         }
 
-        private void OnCollisionEnter(Collision collision)
+        private void StopSound()
         {
             if (soundStopped)
                 return;
@@ -445,6 +434,11 @@ namespace SpellSword
             {
                 try { flightSound.End(false, 1f); } catch { }
             }
+        }
+
+        private void OnCollisionEnter(Collision collision)
+        {
+            StopSound();
         }
     }
 }

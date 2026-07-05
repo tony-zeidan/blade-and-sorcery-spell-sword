@@ -2,6 +2,15 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
+## [Unreleased]
+
+### Fixed
+- **Items (e.g. arrows) becoming un-throwable after a while** — the clone's controller could
+  linger on a pooled item's GameObject after despawn and then despawn a *recycled* item. It now
+  tears itself down on the item's cull event. Also removed the fixed clone cap and its stale
+  `Item` list (the 2s lifetime bounds the count), which was another way pooled items got
+  wrongly despawned.
+
 ## [1.1.0] - 2026-06-29
 
 ### Changed

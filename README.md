@@ -9,8 +9,8 @@ item, fast and straight (no spin):
 The clone carries an imbue if available: the held item's **active blade imbue**, or failing
 that the **spell currently selected on that hand** (so a non-glowing sword with a spell
 equipped still throws an imbued clone; no spell → plain clone). Clones are flagged thrown so
-they penetrate, and travel at a fixed speed regardless of weight. Up to **30** clones persist
-at once — beyond that, the oldest despawn first.
+they penetrate, travel at a fixed speed regardless of weight, and despawn after a couple of
+seconds.
 
 By default the mod only responds to one sword (the short sword); change the scope in the
 in-game menu. No custom assets / AssetBundle are needed — the clone is a duplicate of your own
@@ -68,7 +68,9 @@ Every frame it:
 4. Spawns a clone (`item.data.SpawnAsync`), flags it thrown (`item.Throw`), zeroes its drag,
    sets a straight velocity (zero angular velocity), copies the imbue (`imbue.Transfer`), and
    plays a flight sound that a small `CloneFlightSound` component stops on first impact.
-5. Tracks live clones and despawns the oldest once more than `maxActiveClones` (30) exist.
+5. A `CloneController` on each clone applies the imbue, stops the sound on impact, and
+   despawns the clone after `projectileLifetime`. It tears itself down on the item's cull
+   event so it never lingers on a pooled/recycled item.
 
 ---
 
@@ -136,7 +138,6 @@ The rest of the feel knobs are `public static` fields at the top of `SpellSwordS
 | `targetSwordId`          | Item id for the "Short sword only" scope                 | SwordShortCommon |
 | `cloneSpeed`             | Launch speed of the clone (m/s)                          | 40      |
 | `spawnForwardOffset`     | How far past the tip / shield face the clone spawns (m)  | 0.3     |
-| `maxActiveClones`        | Live clones before the oldest despawn (FIFO)             | 30      |
 | `whooshEffectId`         | Flight sound effect id (WhooshSpin, WhooshSwordLong, …)  | WhooshSpin |
 | `thrownWhooshIntensity`  | Volume (0..1) of the flight sound                        | 1.0     |
 
