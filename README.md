@@ -118,16 +118,19 @@ Once the mod is loaded, open **Options → Mods** (in the book) to change these 
 rebuilding:
 
 - **Spell Sword Enabled** — master on/off.
-- **Active On** — which held items respond to the gestures:
+- **Active On** — which held items respond:
   *Short sword only · All swords · All daggers · Swords & daggers · All weapons ·
-  All weapons & tools · Any held item*. (Swords/daggers are told apart by the game's item
-  `category`; weapons/tools by item `type`.)
+  All weapons & tools · All shields · Any held item*. (Swords/daggers are told apart by the
+  game's item `category`; weapons/tools/shields by item `type`.)
+- **Projectile speed** — launch speed of fired clones (25–80 m/s slider).
+- **Max active clones** — most clones alive at once (5–50; oldest despawns first).
 
 These are driven by `[ModOption]` attributes in `SpellSwordScript.cs`. Note the required
 shape (this is what makes them load — a missing piece will hang the game at *Applying
-Options*): every `[ModOption]` needs **(1)** an interaction attribute (`[ModOptionButton]`),
-and **(2)** a `valueSourceName` pointing at a `public static` array of value wrappers
-(`ModOptionBool[]` / `ModOptionInt[]`). The field is set to the picked entry's value.
+Options*): every `[ModOption]` needs **(1)** an interaction attribute (`[ModOptionButton]` /
+`[ModOptionSlider]` / `[ModOptionArrows]`), and **(2)** a `valueSourceName` pointing at a
+`public static` array of value wrappers (`ModOptionBool[]` / `ModOptionInt[]` /
+`ModOptionFloat[]`). The field is set to the picked entry's value.
 
 ## Tuning
 
@@ -136,12 +139,15 @@ The rest of the feel knobs are `public static` fields at the top of `SpellSwordS
 | Field                    | Meaning                                                  | Default |
 |--------------------------|----------------------------------------------------------|---------|
 | `targetSwordId`          | Item id for the "Short sword only" scope                 | SwordShortCommon |
-| `cloneSpeed`             | Launch speed of the clone (m/s)                          | 40      |
-| `spawnForwardOffset`     | How far past the tip / shield face the clone spawns (m)  | 0.3     |
+| `projectileLifetime`     | Seconds before a clone despawns                          | 2.0     |
+| `spawnForwardOffset`     | How far past the weapon the clone spawns (m)             | 0.1     |
+| `shieldSpawnOffset`      | How far from a shield's center the clone spawns (m)      | 0.6     |
+| `shieldAimPitchCorrection` | Degrees to pitch the shield aim down                   | 35      |
 | `whooshEffectId`         | Flight sound effect id (WhooshSpin, WhooshSwordLong, …)  | WhooshSpin |
 | `thrownWhooshIntensity`  | Volume (0..1) of the flight sound                        | 1.0     |
+| `clickMaxDuration`       | Max tap length (s) that counts as a fire vs. a hold      | 0.3     |
 
-The in-game **Active On** menu now also has an **All shields** option.
+(`Projectile speed` and `Max active clones` are in the in-game menu, not this table.)
 
 Change a value, re-run `./build.ps1`, restart the game.
 

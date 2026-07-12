@@ -35,6 +35,8 @@ Open **Options → Mods** in-game:
 - **Spell Sword Enabled** — master on/off.
 - **Active On** — Short sword only / All swords / All daggers / Swords & daggers / All weapons /
   All weapons & tools / All shields / Any held item.
+- **Projectile speed** — how fast fired clones travel.
+- **Max active clones** — how many clones can exist at once.
 
 ## Installation
 

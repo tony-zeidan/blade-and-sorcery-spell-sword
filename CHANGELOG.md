@@ -2,14 +2,26 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
-## [Unreleased]
+## [1.2.0] - 2026-06-29
+
+### Added
+- **Projectile speed** is now a menu slider (25–80 m/s, default 45 — a bit faster than before).
+- **Max active clones** is now a menu setting (5–50, default 20).
+
+### Changed
+- Clones now **despawn after 2s even if you're holding one** (previously they lingered in hand
+  until released).
 
 ### Fixed
 - **Items (e.g. arrows) becoming un-throwable after a while** — the clone's controller could
   linger on a pooled item's GameObject after despawn and then despawn a *recycled* item. It now
-  tears itself down on the item's cull event. Also removed the fixed clone cap and its stale
-  `Item` list (the 2s lifetime bounds the count), which was another way pooled items got
-  wrongly despawned.
+  tears itself down on the item's cull event, and the clone registry is kept clean of pooled
+  references.
+
+### Known limitation
+- Point-blank shots have a small minimum distance before they penetrate (they bounce if the
+  target is almost touching). This is the game's thrown-weapon velocity check needing a frame of
+  real travel; higher projectile speed shrinks the dead zone.
 
 ## [1.1.0] - 2026-06-29
 

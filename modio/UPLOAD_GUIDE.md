@@ -27,7 +27,9 @@ Same drop-in zip as everywhere else: a `SpellSword/` folder (DLL + manifest).
    | **Maturity** | None |
    | **Visibility** | Public |
 
-3. **Logo/image** — required. Upload an in-game screenshot (16:9 works best for the tile).
+3. **Logo/image** — required. A ready-made 1280×720 logo is included at
+   [`assets/icon.png`](../assets/icon.png) — upload that, or swap in an in-game screenshot
+   (16:9 works best for the tile).
 4. **Tags** — pick the Blade & Sorcery tagging that fits: e.g. **U12 / 1.0**, **Weapon**,
    **Spell/Magic**, **Gameplay**. (Tag options are defined by the game on mod.io.)
 5. **Upload file** — `dist/SpellSword_v1.0.0.zip`, version `1.0.0`. Mark it the active release.

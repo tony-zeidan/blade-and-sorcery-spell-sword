@@ -18,11 +18,8 @@ namespace SpellSword
     public class SpellSwordScript : ThunderScript
     {
         // ---------------------------------------------------------------------
-        // Tunables.
+        // Tunables. (cloneSpeed and maxActiveClones live in the menu section below.)
         // ---------------------------------------------------------------------
-
-        /// <summary>Launch speed (m/s) of the clone.</summary>
-        public static float cloneSpeed = 40f;
 
         /// <summary>
         /// Small forward nudge (m) from the weapon's own position where the clone spawns.
@@ -81,6 +78,12 @@ namespace SpellSword
             new ModOptionInt("Any held item", 6),
         };
 
+        // Slider steps: 25..80 m/s by 5 (default index 4 = 45).
+        public static ModOptionFloat[] speedValues = BuildFloatRange(25f, 80f, 5f);
+
+        // Arrow steps: 5..50 clones by 5 (default index 3 = 20).
+        public static ModOptionInt[] countValues = BuildIntRange(5, 50, 5);
+
         [ModOption("Spell Sword Enabled", "Turn the Spell Sword ability on or off.", "boolValues", defaultValueIndex = 1)]
         [ModOptionButton]
         public static bool ModEnabled = true;
@@ -89,10 +92,38 @@ namespace SpellSword
         [ModOptionButton]
         public static int Scope = 0;
 
+        [ModOption("Projectile speed", "Launch speed (m/s) of fired clones.", "speedValues", defaultValueIndex = 4)]
+        [ModOptionSlider]
+        public static float cloneSpeed = 45f;
+
+        [ModOption("Max active clones", "Most clones alive at once; the oldest despawns first.", "countValues", defaultValueIndex = 3)]
+        [ModOptionArrows]
+        public static int maxActiveClones = 20;
+
+        private static ModOptionFloat[] BuildFloatRange(float start, float end, float step)
+        {
+            List<ModOptionFloat> list = new List<ModOptionFloat>();
+            for (float v = start; v <= end + 0.001f; v += step)
+                list.Add(new ModOptionFloat(v.ToString("0"), v));
+            return list.ToArray();
+        }
+
+        private static ModOptionInt[] BuildIntRange(int start, int end, int step)
+        {
+            List<ModOptionInt> list = new List<ModOptionInt>();
+            for (int v = start; v <= end; v += step)
+                list.Add(new ModOptionInt(v.ToString(), v));
+            return list.ToArray();
+        }
+
         // ---------------------------------------------------------------------
 
         private readonly HandState left = new HandState();
         private readonly HandState right = new HandState();
+
+        // Active clone controllers, oldest first. Kept clean because each controller
+        // unregisters itself on teardown (item cull), so no stale/pooled references linger.
+        private readonly List<CloneController> activeClones = new List<CloneController>();
 
         private EffectData whooshEffectData;
         private bool whooshResolved;
@@ -277,7 +308,9 @@ namespace SpellSword
                     // first moment (the clone's imbue points aren't ready this exact frame)
                     // and stops the sound on first impact.
                     EffectInstance flightSound = SpawnFlightSound(clone);
-                    clone.gameObject.AddComponent<CloneController>().Init(clone, imbueSpell, flightSound);
+                    CloneController controller = clone.gameObject.AddComponent<CloneController>();
+                    controller.Init(this, clone, imbueSpell, flightSound);
+                    RegisterClone(controller);
                 }
                 catch (Exception e)
                 {
@@ -303,6 +336,25 @@ namespace SpellSword
                 return selected;
 
             return null;
+        }
+
+        /// <summary>Track a new clone and despawn the oldest ones over the cap.</summary>
+        internal void RegisterClone(CloneController controller)
+        {
+            activeClones.RemoveAll(c => c == null);
+            activeClones.Add(controller);
+            while (activeClones.Count > maxActiveClones)
+            {
+                CloneController oldest = activeClones[0];
+                activeClones.RemoveAt(0);
+                if (oldest != null)
+                    oldest.DespawnNow();
+            }
+        }
+
+        internal void UnregisterClone(CloneController controller)
+        {
+            activeClones.Remove(controller);
         }
 
         private EffectInstance SpawnFlightSound(Item clone)
@@ -356,16 +408,19 @@ namespace SpellSword
     /// </summary>
     public class CloneController : MonoBehaviour
     {
+        private SpellSwordScript owner;
         private Item item;
         private SpellCastCharge imbueSpell;
         private EffectInstance flightSound;
         private float imbueUntil;
         private float dieTime;
         private bool soundStopped;
+        private bool despawnRequested;
         private bool tornDown;
 
-        public void Init(Item item, SpellCastCharge imbueSpell, EffectInstance flightSound)
+        public void Init(SpellSwordScript owner, Item item, SpellCastCharge imbueSpell, EffectInstance flightSound)
         {
+            this.owner = owner;
             this.item = item;
             this.imbueSpell = imbueSpell;
             this.flightSound = flightSound;
@@ -384,11 +439,28 @@ namespace SpellSword
             if (imbueSpell != null && Time.time <= imbueUntil)
                 ApplyImbue();
 
-            // Despawn after its lifetime, unless the player has grabbed it. Despawning culls
+            // Despawn after its lifetime (even if the player is holding it). Despawning culls
             // the item, which fires OnCull -> Teardown below.
-            if (Time.time >= dieTime && item.mainHandler == null)
+            if (!despawnRequested && Time.time >= dieTime)
             {
-                try { item.Despawn(); } catch { }
+                despawnRequested = true;
+                try { item.Despawn(); } catch { Teardown(); }
+            }
+        }
+
+        /// <summary>Force this clone to despawn now (used by the max-clone cap).</summary>
+        public void DespawnNow()
+        {
+            if (tornDown || despawnRequested)
+                return;
+            despawnRequested = true;
+            if (item != null)
+            {
+                try { item.Despawn(); } catch { Teardown(); }
+            }
+            else
+            {
+                Teardown();
             }
         }
 
@@ -408,6 +480,8 @@ namespace SpellSword
             if (item != null)
                 item.OnCullEvent -= OnCull;
             item = null;
+            if (owner != null)
+                owner.UnregisterClone(this);
             Destroy(this);
         }
 
