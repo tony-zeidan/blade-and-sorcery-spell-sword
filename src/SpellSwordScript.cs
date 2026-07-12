@@ -175,6 +175,7 @@ namespace SpellSword
             if (playerHand == null || playerHand.ragdollHand == null || playerHand.controlHand == null)
                 return;
 
+            RagdollHand rhand = playerHand.ragdollHand;
             bool pressed = playerHand.controlHand.castPressed;
             bool pressBegan = pressed && !state.castWasPressed;
             bool released = !pressed && state.castWasPressed;
@@ -187,6 +188,18 @@ namespace SpellSword
                 // (Don't use uiClickDown: the right hand is the UI-pointer hand and sets it
                 // during normal gameplay, which would block right-hand firing entirely.)
                 state.pressBlockedByUI = PlayerControl.systemMenuActive;
+                BlockSlide(state, rhand);
+            }
+
+            // Keep sliding disabled only during the tap window; restore once it's clearly a
+            // hold, released, or the held handle changed (so holding to slide still works).
+            if (state.slideBlocked)
+            {
+                bool inTapWindow = pressed
+                    && (Time.time - state.pressStartTime <= clickMaxDuration)
+                    && rhand.grabbedHandle == state.slideHandle;
+                if (!inTapWindow)
+                    RestoreSlide(state);
             }
 
             // Only act on release: a quick CLICK fires; a longer HOLD is left alone so you
@@ -198,13 +211,35 @@ namespace SpellSword
             if (state.pressBlockedByUI || PlayerControl.systemMenuActive)
                 return;
 
-            RagdollHand hand = playerHand.ragdollHand;
             Item held = HeldItemOf(playerHand);
             if (held == null || !IsEligible(held))
                 return;
 
-            FireClone(held, hand);
+            FireClone(held, rhand);
             playerHand.controlHand.HapticShort(0.7f, true);
+        }
+
+        private static void BlockSlide(HandState state, RagdollHand hand)
+        {
+            if (state.slideBlocked || hand == null)
+                return;
+            Handle h = hand.grabbedHandle;
+            if (h == null)
+                return;
+            state.slideHandle = h;
+            state.slideSaved = h.slideBehavior;
+            h.slideBehavior = Handle.SlideBehavior.DisallowSlide;
+            state.slideBlocked = true;
+        }
+
+        private static void RestoreSlide(HandState state)
+        {
+            if (state.slideBlocked && state.slideHandle != null)
+            {
+                try { state.slideHandle.slideBehavior = state.slideSaved; } catch { }
+            }
+            state.slideBlocked = false;
+            state.slideHandle = null;
         }
 
         private bool IsEligible(Item item)
@@ -235,16 +270,48 @@ namespace SpellSword
         }
 
         /// <summary>
-        /// Direction the weapon is pointing: from the grip (hand) toward the farthest solid
-        /// collider (the weapon's far end / head / tip). Works for any shape, unlike flyDirRef
-        /// which can point out a face on odd items. Falls back to flyDirRef then transform.
+        /// Direction to fire a non-shield item.
+        ///
+        /// For weapons/tools (things held by a hilt), this is the hilt/handle axis as it sits
+        /// in the hand — i.e. where the weapon is pointing — signed toward the weapon body.
+        /// For everything else (rocks, misc props) it falls back to grip -> farthest collider.
         /// </summary>
         private static Vector3 WeaponAimDir(Item source, RagdollHand hand)
         {
             Vector3 grip = hand != null ? hand.transform.position : source.transform.position;
+            Vector3 farPoint = FarthestColliderPoint(source, grip);
 
+            Handle handle = hand != null ? hand.grabbedHandle : null;
+            if (handle != null && HasHilt(source))
+            {
+                // Handles are laid out with their length along local up (the slide axis).
+                Vector3 axis = handle.transform.up;
+                if (axis.sqrMagnitude > 0.0001f)
+                {
+                    axis.Normalize();
+                    if (Vector3.Dot(axis, farPoint - grip) < 0f)
+                        axis = -axis; // orient toward the blade/head, not the pommel
+                    return axis;
+                }
+            }
+
+            Vector3 dir = farPoint - grip;
+            if (dir.sqrMagnitude < 0.0004f)
+                dir = source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward;
+            return dir.normalized;
+        }
+
+        /// <summary>True for items held by a hilt/handle (weapons, tools) — not rocks/props.</summary>
+        private static bool HasHilt(Item source)
+        {
+            return source.data != null
+                && (source.data.type == ItemData.Type.Weapon || source.data.type == ItemData.Type.Tool);
+        }
+
+        private static Vector3 FarthestColliderPoint(Item source, Vector3 grip)
+        {
             Collider[] cols = source.GetComponentsInChildren<Collider>();
-            Vector3 farthest = Vector3.zero;
+            Vector3 farthest = source.transform.position;
             float best = -1f;
             for (int i = 0; i < cols.Length; i++)
             {
@@ -254,11 +321,7 @@ namespace SpellSword
                 float d = (p - grip).sqrMagnitude;
                 if (d > best) { best = d; farthest = p; }
             }
-
-            Vector3 dir = best >= 0f ? (farthest - grip) : Vector3.zero;
-            if (dir.sqrMagnitude < 0.0004f) // degenerate (held at the far end / tiny item)
-                dir = source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward;
-            return dir.normalized;
+            return farthest;
         }
 
         private void FireClone(Item source, RagdollHand hand)
@@ -427,6 +490,12 @@ namespace SpellSword
             public bool castWasPressed;
             public float pressStartTime;
             public bool pressBlockedByUI;
+
+            // While a click is in progress we disable grip-sliding on the held handle so a
+            // quick tap doesn't slide the hand down the hilt; restored after the tap window.
+            public Handle slideHandle;
+            public Handle.SlideBehavior slideSaved;
+            public bool slideBlocked;
         }
     }
 

@@ -7,9 +7,11 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 ### Fixed
 - **Mod options no longer overlap another mod's menu** — the options are now grouped under a
   dedicated "Spell Sword" category (`[ModOptionCategory]`) instead of the shared default group.
-- **Odd-shaped weapons fire where you point** — the launch direction is now the weapon's
-  length (grip → farthest collider) instead of `flyDirRef`, which pointed out a face on items
-  like the Stone Greatsword, Ancient Shovel, and Ancient Hammer.
+- **Weapons fire along the hilt as held** — the launch direction is now the handle/hilt axis
+  in your hand (signed toward the blade/head), so greatswords, shovels, and hammers fire where
+  you're pointing them. Rocks/props still use grip → farthest collider.
+- **Clicking to fire no longer slides your hand down the hilt** — grip-sliding is briefly
+  disabled during the fire tap (restored immediately after, so holding to slide still works).
 
 ## [1.2.0] - 2026-06-29
 
