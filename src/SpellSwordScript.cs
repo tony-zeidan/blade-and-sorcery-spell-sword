@@ -84,18 +84,22 @@ namespace SpellSword
         // Arrow steps: 5..50 clones by 5 (default index 3 = 20).
         public static ModOptionInt[] countValues = BuildIntRange(5, 50, 5);
 
+        [ModOptionCategory("Spell Sword", 0)]
         [ModOption("Spell Sword Enabled", "Turn the Spell Sword ability on or off.", "boolValues", defaultValueIndex = 1)]
         [ModOptionButton]
         public static bool ModEnabled = true;
 
+        [ModOptionCategory("Spell Sword", 0)]
         [ModOption("Active On", "Which held items can fire a clone.", "scopeValues", defaultValueIndex = 0)]
         [ModOptionButton]
         public static int Scope = 0;
 
+        [ModOptionCategory("Spell Sword", 0)]
         [ModOption("Projectile speed", "Launch speed (m/s) of fired clones.", "speedValues", defaultValueIndex = 4)]
         [ModOptionSlider]
         public static float cloneSpeed = 45f;
 
+        [ModOptionCategory("Spell Sword", 0)]
         [ModOption("Max active clones", "Most clones alive at once; the oldest despawns first.", "countValues", defaultValueIndex = 3)]
         [ModOptionArrows]
         public static int maxActiveClones = 20;
@@ -230,6 +234,33 @@ namespace SpellSword
                 && (item.data.type == ItemData.Type.Shield || item.data.category == "Shields");
         }
 
+        /// <summary>
+        /// Direction the weapon is pointing: from the grip (hand) toward the farthest solid
+        /// collider (the weapon's far end / head / tip). Works for any shape, unlike flyDirRef
+        /// which can point out a face on odd items. Falls back to flyDirRef then transform.
+        /// </summary>
+        private static Vector3 WeaponAimDir(Item source, RagdollHand hand)
+        {
+            Vector3 grip = hand != null ? hand.transform.position : source.transform.position;
+
+            Collider[] cols = source.GetComponentsInChildren<Collider>();
+            Vector3 farthest = Vector3.zero;
+            float best = -1f;
+            for (int i = 0; i < cols.Length; i++)
+            {
+                if (cols[i].isTrigger)
+                    continue;
+                Vector3 p = cols[i].bounds.center;
+                float d = (p - grip).sqrMagnitude;
+                if (d > best) { best = d; farthest = p; }
+            }
+
+            Vector3 dir = best >= 0f ? (farthest - grip) : Vector3.zero;
+            if (dir.sqrMagnitude < 0.0004f) // degenerate (held at the far end / tiny item)
+                dir = source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward;
+            return dir.normalized;
+        }
+
         private void FireClone(Item source, RagdollHand hand)
         {
             ItemData data = source.data;
@@ -260,8 +291,10 @@ namespace SpellSword
             }
             else
             {
-                Transform tip = source.flyDirRef != null ? source.flyDirRef : source.transform;
-                dir = tip.forward.normalized;
+                // Fire along the weapon's length (grip -> far end), i.e. where the user is
+                // pointing it. This is robust for odd shapes (greatswords, shovels, hammers)
+                // whose flyDirRef points out a face rather than down the length.
+                dir = WeaponAimDir(source, hand);
                 // Spawn at the weapon's own position (like throwing it), not out at the tip,
                 // so close-range targets aren't spawned over.
                 spawnPos = source.transform.position + dir * spawnForwardOffset;

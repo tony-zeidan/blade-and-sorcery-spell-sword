@@ -2,6 +2,15 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
+## [Unreleased]
+
+### Fixed
+- **Mod options no longer overlap another mod's menu** — the options are now grouped under a
+  dedicated "Spell Sword" category (`[ModOptionCategory]`) instead of the shared default group.
+- **Odd-shaped weapons fire where you point** — the launch direction is now the weapon's
+  length (grip → farthest collider) instead of `flyDirRef`, which pointed out a face on items
+  like the Stone Greatsword, Ancient Shovel, and Ancient Hammer.
+
 ## [1.2.0] - 2026-06-29
 
 ### Added
