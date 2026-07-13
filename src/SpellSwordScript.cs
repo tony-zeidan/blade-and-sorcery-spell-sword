@@ -187,7 +187,7 @@ namespace SpellSword
                 // Remember if this press started while a menu was open, so it never fires.
                 // (Don't use uiClickDown: the right hand is the UI-pointer hand and sets it
                 // during normal gameplay, which would block right-hand firing entirely.)
-                state.pressBlockedByUI = PlayerControl.systemMenuActive;
+                state.pressBlockedByUI = PlayerControl.systemMenuActive || IsPointingUI(rhand.side);
                 BlockSlide(state, rhand);
             }
 
@@ -208,7 +208,7 @@ namespace SpellSword
                 return;
             if (Time.time - state.pressStartTime > clickMaxDuration)
                 return;
-            if (state.pressBlockedByUI || PlayerControl.systemMenuActive)
+            if (state.pressBlockedByUI || PlayerControl.systemMenuActive || IsPointingUI(rhand.side))
                 return;
 
             Item held = HeldItemOf(playerHand);
@@ -217,6 +217,17 @@ namespace SpellSword
 
             FireClone(held, rhand);
             playerHand.controlHand.HapticShort(0.7f, true);
+        }
+
+        /// <summary>True if this hand's UI pointer is currently over a book/menu/UI element.</summary>
+        private static bool IsPointingUI(Side side)
+        {
+            try
+            {
+                Pointer p = Pointer.GetPointer(side);
+                return p != null && p.isPointingUI;
+            }
+            catch { return false; }
         }
 
         private static void BlockSlide(HandState state, RagdollHand hand)
