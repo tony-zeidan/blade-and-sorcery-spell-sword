@@ -281,42 +281,20 @@ namespace SpellSword
         }
 
         /// <summary>
-        /// Direction to fire a non-shield item.
-        ///
-        /// For weapons/tools (things held by a hilt), this is the hilt/handle axis as it sits
-        /// in the hand — i.e. where the weapon is pointing — signed toward the weapon body.
-        /// For everything else (rocks, misc props) it falls back to grip -> farthest collider.
+        /// Direction to fire a non-shield item: from the grip (hand) toward the weapon's far
+        /// end (its farthest solid collider) — i.e. straight along how it's held, business-end
+        /// first. Works for arrows, swords, greatswords, shovels, hammers, etc. Falls back to
+        /// flyDirRef then transform.forward for degenerate cases.
         /// </summary>
         private static Vector3 WeaponAimDir(Item source, RagdollHand hand)
         {
             Vector3 grip = hand != null ? hand.transform.position : source.transform.position;
             Vector3 farPoint = FarthestColliderPoint(source, grip);
 
-            Handle handle = hand != null ? hand.grabbedHandle : null;
-            if (handle != null && HasHilt(source))
-            {
-                // Handles are laid out with their length along local up (the slide axis).
-                Vector3 axis = handle.transform.up;
-                if (axis.sqrMagnitude > 0.0001f)
-                {
-                    axis.Normalize();
-                    if (Vector3.Dot(axis, farPoint - grip) < 0f)
-                        axis = -axis; // orient toward the blade/head, not the pommel
-                    return axis;
-                }
-            }
-
             Vector3 dir = farPoint - grip;
             if (dir.sqrMagnitude < 0.0004f)
                 dir = source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward;
             return dir.normalized;
-        }
-
-        /// <summary>True for items held by a hilt/handle (weapons, tools) — not rocks/props.</summary>
-        private static bool HasHilt(Item source)
-        {
-            return source.data != null
-                && (source.data.type == ItemData.Type.Weapon || source.data.type == ItemData.Type.Tool);
         }
 
         private static Vector3 FarthestColliderPoint(Item source, Vector3 grip)
