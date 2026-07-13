@@ -11,8 +11,9 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
   weapon's far end (farthest collider), so arrows, swords, greatswords, shovels, and hammers
   all fly business-end first in the direction you're pointing, instead of out a face
   (`flyDirRef`).
-- **Clicking to fire no longer slides your hand down the hilt** — grip-sliding is briefly
-  disabled during the fire tap (restored immediately after, so holding to slide still works).
+- **Clicking to fire no longer slides your hand down the hilt** — the grip position is captured
+  when you press and snapped back after the shot if it moved, so a fire tap can't slide the
+  hand (a real hold is left alone for intentional sliding).
 - **No longer fires when clicking UI** (books, menus, dialogs) — firing is gated on the hand's
   UI pointer (`Pointer.isPointingUI`), which is only set when actually pointing at UI, so it
   doesn't block normal gameplay (unlike the earlier `uiClickDown` attempt).

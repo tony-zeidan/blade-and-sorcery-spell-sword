@@ -188,35 +188,29 @@ namespace SpellSword
                 // (Don't use uiClickDown: the right hand is the UI-pointer hand and sets it
                 // during normal gameplay, which would block right-hand firing entirely.)
                 state.pressBlockedByUI = PlayerControl.systemMenuActive || IsPointingUI(rhand.side);
-                BlockSlide(state, rhand);
+                // Remember exactly where the hand is gripping so we can undo any slide caused
+                // by the fire tap. (A quick tap of the button can slide the hand along the
+                // hilt, especially pointing down; a real HOLD is left alone for sliding.)
+                CaptureGrip(state, rhand);
             }
 
-            // Keep sliding disabled only during the tap window; restore once it's clearly a
-            // hold, released, or the held handle changed (so holding to slide still works).
-            if (state.slideBlocked)
-            {
-                bool inTapWindow = pressed
-                    && (Time.time - state.pressStartTime <= clickMaxDuration)
-                    && rhand.grabbedHandle == state.slideHandle;
-                if (!inTapWindow)
-                    RestoreSlide(state);
-            }
-
-            // Only act on release: a quick CLICK fires; a longer HOLD is left alone so you
-            // can still slide your grip along the weapon while holding the button.
+            // Only act on release: a quick CLICK fires; a longer HOLD is left alone.
             if (!released)
                 return;
-            if (Time.time - state.pressStartTime > clickMaxDuration)
-                return;
-            if (state.pressBlockedByUI || PlayerControl.systemMenuActive || IsPointingUI(rhand.side))
-                return;
 
+            bool wasTap = Time.time - state.pressStartTime <= clickMaxDuration;
+            bool blocked = state.pressBlockedByUI || PlayerControl.systemMenuActive || IsPointingUI(rhand.side);
             Item held = HeldItemOf(playerHand);
-            if (held == null || !IsEligible(held))
-                return;
 
-            FireClone(held, rhand);
-            playerHand.controlHand.HapticShort(0.7f, true);
+            if (wasTap && !blocked && held != null && IsEligible(held))
+            {
+                FireClone(held, rhand);
+                playerHand.controlHand.HapticShort(0.7f, true);
+                // Undo any grip slide that happened during the tap.
+                RestoreGrip(state, rhand);
+            }
+
+            state.gripCaptured = false;
         }
 
         /// <summary>True if this hand's UI pointer is currently over a book/menu/UI element.</summary>
@@ -230,27 +224,30 @@ namespace SpellSword
             catch { return false; }
         }
 
-        private static void BlockSlide(HandState state, RagdollHand hand)
+        private static void CaptureGrip(HandState state, RagdollHand hand)
         {
-            if (state.slideBlocked || hand == null)
+            state.gripCaptured = false;
+            if (hand == null || hand.grabbedHandle == null || hand.gripInfo == null)
                 return;
-            Handle h = hand.grabbedHandle;
-            if (h == null)
-                return;
-            state.slideHandle = h;
-            state.slideSaved = h.slideBehavior;
-            h.slideBehavior = Handle.SlideBehavior.DisallowSlide;
-            state.slideBlocked = true;
+            state.gripHandle = hand.grabbedHandle;
+            state.gripAxis = hand.gripInfo.axisPosition;
+            state.gripPose = hand.gripInfo.orientation;
+            state.gripWithTrigger = hand.grabbedWithTrigger;
+            state.gripCaptured = true;
         }
 
-        private static void RestoreSlide(HandState state)
+        private static void RestoreGrip(HandState state, RagdollHand hand)
         {
-            if (state.slideBlocked && state.slideHandle != null)
-            {
-                try { state.slideHandle.slideBehavior = state.slideSaved; } catch { }
-            }
-            state.slideBlocked = false;
-            state.slideHandle = null;
+            if (!state.gripCaptured || hand == null || hand.gripInfo == null)
+                return;
+            if (hand.grabbedHandle != state.gripHandle || state.gripHandle == null)
+                return;
+            // Only re-grip if the hand actually slid a noticeable amount, to avoid needless
+            // re-grabs on every shot.
+            if (Mathf.Abs(hand.gripInfo.axisPosition - state.gripAxis) <= 0.02f)
+                return;
+            try { hand.Grab(state.gripHandle, state.gripPose, state.gripAxis, false, state.gripWithTrigger); }
+            catch { }
         }
 
         private bool IsEligible(Item item)
@@ -480,11 +477,12 @@ namespace SpellSword
             public float pressStartTime;
             public bool pressBlockedByUI;
 
-            // While a click is in progress we disable grip-sliding on the held handle so a
-            // quick tap doesn't slide the hand down the hilt; restored after the tap window.
-            public Handle slideHandle;
-            public Handle.SlideBehavior slideSaved;
-            public bool slideBlocked;
+            // Grip position captured at press, so a fire tap's slide can be undone on release.
+            public Handle gripHandle;
+            public float gripAxis;
+            public HandlePose gripPose;
+            public bool gripWithTrigger;
+            public bool gripCaptured;
         }
     }
 
