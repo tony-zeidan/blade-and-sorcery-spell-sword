@@ -7,7 +7,7 @@ uploads can be scripted later (see the bottom).
 ## The file to upload
 
 ```powershell
-./build.ps1 -Package      # -> dist/SpellSword_v1.0.0.zip
+./build.ps1 -Package      # -> dist/SpellSword_v<version>.zip
 ```
 
 Same drop-in zip as everywhere else: a `SpellSword/` folder (DLL + manifest).
@@ -32,7 +32,8 @@ Same drop-in zip as everywhere else: a `SpellSword/` folder (DLL + manifest).
    (16:9 works best for the tile).
 4. **Tags** — pick the Blade & Sorcery tagging that fits: e.g. **U12 / 1.0**, **Weapon**,
    **Spell/Magic**, **Gameplay**. (Tag options are defined by the game on mod.io.)
-5. **Upload file** — `dist/SpellSword_v1.0.0.zip`, version `1.0.0`. Mark it the active release.
+5. **Upload file** — `dist/SpellSword_v<version>.zip`, set the version to match `manifest.json`.
+   Mark it the active release.
 6. Save / publish.
 
 ## Option B — API (scriptable, for later automation)
@@ -43,7 +44,7 @@ mod.io exposes a REST API that can create the mod and upload files without the w
   <https://mod.io> → *Settings → API access*.
 - Relevant endpoints (game id = Blade & Sorcery's mod.io game id):
   - `POST /games/{game-id}/mods` — create the mod profile (name, summary, description, logo).
-  - `POST /games/{game-id}/mods/{mod-id}/files` — upload `SpellSword_v1.0.0.zip` as a modfile.
+  - `POST /games/{game-id}/mods/{mod-id}/files` — upload the built zip as a modfile.
 - Docs: <https://docs.mod.io/>
 
 This is worth wiring into `build.ps1` (e.g. a `-PublishModio` switch) once the mod profile

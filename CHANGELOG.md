@@ -2,7 +2,7 @@
 
 All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 
-## [Unreleased]
+## [1.2.1] - 2026-07-12
 
 ### Fixed
 - **Mod options no longer overlap another mod's menu** — the options are now grouped under a
@@ -15,6 +15,11 @@ All notable changes to this mod. Built for Blade & Sorcery PCVR 1.0.0.0.
 - **No longer fires when clicking UI** (books, menus, dialogs) — firing is gated on the hand's
   UI pointer (`Pointer.isPointingUI`), which is only set when actually pointing at UI, so it
   doesn't block normal gameplay (unlike the earlier `uiClickDown` attempt).
+
+### Known limitation
+- Firing can still let your hand slide slightly along the hilt (your VR hand rigidly follows
+  the physical controller along the handle, which a mod can't lock without disrupting the
+  grip). It no longer affects the fire direction, which is now grip-independent.
 
 ## [1.2.0] - 2026-06-29
 

@@ -8,7 +8,7 @@ Everything you need to paste/select is below. Time: ~5 minutes.
 Build the distributable zip:
 
 ```powershell
-./build.ps1 -Package      # -> dist/SpellSword_v1.0.0.zip
+./build.ps1 -Package      # -> dist/SpellSword_v<version>.zip
 ```
 
 That zip contains a `SpellSword/` folder (DLL + manifest) that a player drops into their Mods
@@ -46,7 +46,7 @@ Nexus requires at least one image, and the first image becomes the thumbnail/til
 
 ## 4. Files tab
 
-- Upload `dist/SpellSword_v1.0.0.zip` as the **Main file**.
+- Upload `dist/SpellSword_v<version>.zip` as the **Main file**.
 - File name: `Spell Sword 1.0.0`, version `1.0.0`.
 - Tick "this is the main/primary file."
 
