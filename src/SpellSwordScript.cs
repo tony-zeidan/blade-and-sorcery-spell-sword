@@ -188,29 +188,23 @@ namespace SpellSword
                 // (Don't use uiClickDown: the right hand is the UI-pointer hand and sets it
                 // during normal gameplay, which would block right-hand firing entirely.)
                 state.pressBlockedByUI = PlayerControl.systemMenuActive || IsPointingUI(rhand.side);
-                // Remember exactly where the hand is gripping so we can undo any slide caused
-                // by the fire tap. (A quick tap of the button can slide the hand along the
-                // hilt, especially pointing down; a real HOLD is left alone for sliding.)
-                CaptureGrip(state, rhand);
             }
 
-            // Only act on release: a quick CLICK fires; a longer HOLD is left alone.
+            // Only act on release: a quick CLICK fires; a longer HOLD is left alone so you can
+            // still slide your grip along the weapon while holding the button.
             if (!released)
                 return;
+            if (Time.time - state.pressStartTime > clickMaxDuration)
+                return;
+            if (state.pressBlockedByUI || PlayerControl.systemMenuActive || IsPointingUI(rhand.side))
+                return;
 
-            bool wasTap = Time.time - state.pressStartTime <= clickMaxDuration;
-            bool blocked = state.pressBlockedByUI || PlayerControl.systemMenuActive || IsPointingUI(rhand.side);
             Item held = HeldItemOf(playerHand);
+            if (held == null || !IsEligible(held))
+                return;
 
-            if (wasTap && !blocked && held != null && IsEligible(held))
-            {
-                FireClone(held, rhand);
-                playerHand.controlHand.HapticShort(0.7f, true);
-                // Undo any grip slide that happened during the tap.
-                RestoreGrip(state, rhand);
-            }
-
-            state.gripCaptured = false;
+            FireClone(held, rhand);
+            playerHand.controlHand.HapticShort(0.7f, true);
         }
 
         /// <summary>True if this hand's UI pointer is currently over a book/menu/UI element.</summary>
@@ -222,32 +216,6 @@ namespace SpellSword
                 return p != null && p.isPointingUI;
             }
             catch { return false; }
-        }
-
-        private static void CaptureGrip(HandState state, RagdollHand hand)
-        {
-            state.gripCaptured = false;
-            if (hand == null || hand.grabbedHandle == null || hand.gripInfo == null)
-                return;
-            state.gripHandle = hand.grabbedHandle;
-            state.gripAxis = hand.gripInfo.axisPosition;
-            state.gripPose = hand.gripInfo.orientation;
-            state.gripWithTrigger = hand.grabbedWithTrigger;
-            state.gripCaptured = true;
-        }
-
-        private static void RestoreGrip(HandState state, RagdollHand hand)
-        {
-            if (!state.gripCaptured || hand == null || hand.gripInfo == null)
-                return;
-            if (hand.grabbedHandle != state.gripHandle || state.gripHandle == null)
-                return;
-            // Only re-grip if the hand actually slid a noticeable amount, to avoid needless
-            // re-grabs on every shot.
-            if (Mathf.Abs(hand.gripInfo.axisPosition - state.gripAxis) <= 0.02f)
-                return;
-            try { hand.Grab(state.gripHandle, state.gripPose, state.gripAxis, false, state.gripWithTrigger); }
-            catch { }
         }
 
         private bool IsEligible(Item item)
@@ -278,20 +246,63 @@ namespace SpellSword
         }
 
         /// <summary>
-        /// Direction to fire a non-shield item: from the grip (hand) toward the weapon's far
-        /// end (its farthest solid collider) — i.e. straight along how it's held, business-end
-        /// first. Works for arrows, swords, greatswords, shovels, hammers, etc. Falls back to
-        /// flyDirRef then transform.forward for degenerate cases.
+        /// Direction to fire a non-shield item.
+        ///
+        /// Weapons/tools fire along the item's own long axis (from its geometry, NOT your grip),
+        /// signed toward where the hand is aiming — so it always fires out the front no matter
+        /// where along the shaft you're holding it (fixes two-handers reversing by grip).
+        /// Rocks/props fall back to grip -> farthest collider.
         /// </summary>
         private static Vector3 WeaponAimDir(Item source, RagdollHand hand)
         {
-            Vector3 grip = hand != null ? hand.transform.position : source.transform.position;
-            Vector3 farPoint = FarthestColliderPoint(source, grip);
+            if (HasHilt(source))
+            {
+                Vector3 axis = LongAxisWorld(source);
+                Vector3 aim = hand != null
+                    ? hand.PointDir
+                    : (source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward);
+                if (Vector3.Dot(axis, aim) < 0f)
+                    axis = -axis; // point out the front (where you're aiming), not the back
+                return axis.normalized;
+            }
 
-            Vector3 dir = farPoint - grip;
+            Vector3 grip = hand != null ? hand.transform.position : source.transform.position;
+            Vector3 dir = FarthestColliderPoint(source, grip) - grip;
             if (dir.sqrMagnitude < 0.0004f)
                 dir = source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward;
             return dir.normalized;
+        }
+
+        private static bool HasHilt(Item source)
+        {
+            return source.data != null
+                && (source.data.type == ItemData.Type.Weapon || source.data.type == ItemData.Type.Tool);
+        }
+
+        /// <summary>
+        /// The item's principal (long) axis in world space, independent of grip — the direction
+        /// between the two farthest-apart solid collider centers (blade tip vs pommel, head vs
+        /// handle, etc.). Undirected; the caller signs it.
+        /// </summary>
+        private static Vector3 LongAxisWorld(Item source)
+        {
+            Collider[] cols = source.GetComponentsInChildren<Collider>();
+            Vector3 a = Vector3.zero, b = Vector3.zero;
+            float best = -1f;
+            for (int i = 0; i < cols.Length; i++)
+            {
+                if (cols[i].isTrigger) continue;
+                for (int j = i + 1; j < cols.Length; j++)
+                {
+                    if (cols[j].isTrigger) continue;
+                    float d = (cols[i].bounds.center - cols[j].bounds.center).sqrMagnitude;
+                    if (d > best) { best = d; a = cols[i].bounds.center; b = cols[j].bounds.center; }
+                }
+            }
+            Vector3 axis = b - a;
+            if (axis.sqrMagnitude > 0.0004f)
+                return axis.normalized;
+            return source.flyDirRef != null ? source.flyDirRef.forward : source.transform.forward;
         }
 
         private static Vector3 FarthestColliderPoint(Item source, Vector3 grip)
@@ -477,12 +488,6 @@ namespace SpellSword
             public float pressStartTime;
             public bool pressBlockedByUI;
 
-            // Grip position captured at press, so a fire tap's slide can be undone on release.
-            public Handle gripHandle;
-            public float gripAxis;
-            public HandlePose gripPose;
-            public bool gripWithTrigger;
-            public bool gripCaptured;
         }
     }
 
